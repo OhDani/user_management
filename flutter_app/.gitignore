@@ -1,0 +1,54 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+build/
+coverage/
+
+# Do NOT ignore pubspec.yaml
+# pubspec.yaml
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Android
+**/android/app/debug.keystore
+**/android/local.properties
+**/android/.gradle/
+**/android/.idea/
+**/android/app/build/
+
+# iOS
+**/ios/Pods/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/Flutter.xcworkspace
+
+# macOS
+**/macos/Flutter/Flutter.framework
+**/macos/Flutter/Generated.xcconfig
+**/macos/Flutter/Flutter.xcworkspace
+**/macos/Pods/
+**/macos/Build/
+
+# Windows
+**/windows/Flutter/Generated.xcconfig
+**/windows/Flutter/Flutter.framework
+**/windows/Build/
+
+# Linux
+**/linux/Build/
+
+# Others
+*.log
+*.class
+*.pyc
+*.swp
+.DS_Store
+.metadata
