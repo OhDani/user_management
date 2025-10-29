@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ApiService {
   // Thay đổi IP này theo máy của bạn
@@ -142,5 +143,24 @@ class ApiService {
     } catch (e) {
       return {'success': false, 'message': 'Error: $e'};
     }
+  }
+
+  // Upload ảnh
+  Future<Map<String, dynamic>> uploadImage(String userId, XFile image) async {
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/upload/$userId'),
+    );
+    request.files.add(await http.MultipartFile.fromPath('image', image.path));
+
+    var response = await request.send();
+    var respStr = await response.stream.bytesToString();
+    return json.decode(respStr);
+  }
+
+  // Remove ảnh
+  Future<Map<String, dynamic>> removeImage(String userId) async {
+    var response = await http.delete(Uri.parse('$baseUrl/remove/$userId'));
+    return json.decode(response.body);
   }
 }
