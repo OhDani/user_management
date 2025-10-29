@@ -4,7 +4,7 @@ import '../services/api_service.dart';
 import 'add_user_screen.dart';
 import 'edit_user_screen.dart';
 import 'login_screen.dart';
-import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({Key? key}) : super(key: key);
@@ -35,9 +35,9 @@ class _UserListScreenState extends State<UserListScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -96,10 +96,7 @@ class _UserListScreenState extends State<UserListScreen> {
       appBar: AppBar(
         title: const Text('User Management'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
+          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
       body: _isLoading
@@ -120,7 +117,7 @@ class _UserListScreenState extends State<UserListScreen> {
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundImage: user.image != null
-                                  ? MemoryImage(base64Decode(user.image!))
+                                  ? NetworkImage(user.image!)
                                   : null,
                               child: user.image == null
                                   ? Text(user.username[0].toUpperCase())
@@ -131,8 +128,12 @@ class _UserListScreenState extends State<UserListScreen> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // Edit
                                 IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Colors.blue,
+                                  ),
                                   onPressed: () async {
                                     await Navigator.push(
                                       context,
@@ -144,8 +145,45 @@ class _UserListScreenState extends State<UserListScreen> {
                                     _loadUsers();
                                   },
                                 ),
+
+                                // Upload ảnh
                                 IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  icon: const Icon(
+                                    Icons.image,
+                                    color: Colors.orange,
+                                  ),
+                                  onPressed: () async {
+                                    final picker = ImagePicker();
+                                    final pickedFile = await picker.pickImage(
+                                      source: ImageSource.gallery,
+                                    );
+                                    if (pickedFile != null) {
+                                      final result = await _apiService
+                                          .uploadImage(user.id!, pickedFile);
+                                      if (result['success']) _loadUsers();
+                                    }
+                                  },
+                                ),
+
+                                // Remove ảnh
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_forever,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: () async {
+                                    final result = await _apiService
+                                        .removeImage(user.id!);
+                                    if (result['success']) _loadUsers();
+                                  },
+                                ),
+
+                                // Delete user
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
                                   onPressed: () => _deleteUser(user.id!),
                                 ),
                               ],
