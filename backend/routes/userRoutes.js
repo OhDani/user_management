@@ -3,41 +3,26 @@ const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/auth');
+const parser = require('../middleware/upload');
+const cloudinary = require('../config/cloudinary');
+const bcrypt = require('bcryptjs');
 
 // 1. LOGIN
 router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ message: 'User not found' });
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        image: user.image
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (user.password) {
+    // login bình thường
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(400).json({ message: 'Incorrect password' });
   }
+  // trả về token
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user });
 });
+
 
 // 2. GET ALL USERS (Protected)
 router.get('/users', authMiddleware, async (req, res) => {
@@ -140,5 +125,72 @@ router.delete('/users/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// 7. Upload hoặc update ảnh user
+router.post('/upload/:id', parser.single('image'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    // Xóa ảnh cũ nếu có
+    if (user.image_public_id) {
+      await cloudinary.uploader.destroy(user.image_public_id);
+    }
+
+    // Lưu link và public_id
+    user.image = req.file.path;
+    user.image_public_id = req.file.filename;
+    await user.save();
+
+    res.json({ message: 'Image uploaded successfully', user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 8. Remove ảnh
+router.delete('/remove/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user.image_public_id) {
+      return res.status(400).json({ message: 'No image to remove' });
+    }
+
+    await cloudinary.uploader.destroy(user.image_public_id);
+
+    user.image = null;
+    user.image_public_id = null;
+    await user.save();
+
+    res.json({ message: 'Image removed successfully', user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+// 9. Đăng ký tài khoản
+router.post('/signup', async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: 'Email already registered' });
+
+    const newUser = new User({
+      username: username ?? email.split('@')[0],  // nếu không có username, lấy từ email
+      email,
+      password: password || null,                // null nếu signup bằng Gmail
+    });
+
+    await newUser.save();
+
+    res.status(201).json({ message: 'Signup successful', user: newUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 module.exports = router;
