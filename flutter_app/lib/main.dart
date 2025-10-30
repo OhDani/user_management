@@ -14,8 +14,11 @@ class MyApp extends StatelessWidget {
       title: 'User Management',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
       ),
       home: const LoginScreen(),
     );

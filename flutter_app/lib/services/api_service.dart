@@ -5,11 +5,7 @@ import '../models/user_model.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  // Thay đổi IP này theo máy của bạn
-  // Android Emulator: 10.0.2.2
-  // iOS Simulator: localhost
-  // Real Device: IP máy tính của bạn (vd: 192.168.1.100)
-  static const String baseUrl = 'http://10.0.2.2:5000/api';
+  static const String baseUrl = 'http://10.0.2.2:5000';
 
   // Lấy token từ SharedPreferences
   Future<String?> _getToken() async {
@@ -29,81 +25,162 @@ class ApiService {
     await prefs.remove('token');
   }
 
-  // LOGIN
+  // LOGIN ✅ Sửa lại
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
+      final url = Uri.parse('$baseUrl/auth/login');
+      print('🔵 Login URL: $url');
+      print('🔵 Body: {email: $email, password: ***}');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
+        url,
+        headers: {
+          'Content-Type': 'application/json', // ✅ Thêm header này
+        },
         body: jsonEncode({'email': email, 'password': password}),
       );
+
+      print('🟡 Status: ${response.statusCode}');
+      print('🟡 Response: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         await _saveToken(data['token']);
+        print('🟢 Login success, token saved');
         return {'success': true, 'data': data};
       } else {
-        final error = jsonDecode(response.body);
-        return {'success': false, 'message': error['message']};
+        try {
+          final error = jsonDecode(response.body);
+          return {'success': false, 'message': error['message']};
+        } catch (e) {
+          // Nếu response là HTML (404, 500)
+          return {
+            'success': false,
+            'message': 'Server error (${response.statusCode}): ${response.body.substring(0, 100)}'
+          };
+        }
       }
     } catch (e) {
+      print('🔴 Login exception: $e');
       return {'success': false, 'message': 'Connection error: $e'};
     }
   }
 
-  // GET ALL USERS
+  // REGISTER ✅ Thêm method này
+  Future<Map<String, dynamic>> register(
+      String username, String email, String password) async {
+    try {
+      final url = Uri.parse('$baseUrl/auth/register');
+      print('🔵 Register URL: $url');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'username': username,
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      print('🟡 Status: ${response.statusCode}');
+      print('🟡 Response: ${response.body}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      } else {
+        try {
+          final error = jsonDecode(response.body);
+          return {'success': false, 'message': error['message']};
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Server error (${response.statusCode})'
+          };
+        }
+      }
+    } catch (e) {
+      print('🔴 Register exception: $e');
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  // GET ALL USERS ✅ Thêm debug log
   Future<List<User>> getUsers() async {
     try {
       final token = await _getToken();
+      final url = Uri.parse('$baseUrl/users');
+      print('🔵 Get Users URL: $url');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/users'),
+        url,
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
         },
       );
 
+      print('🟡 Status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
+        print('🟢 Got ${data.length} users');
         return data.map((json) => User.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load users');
+        throw Exception('Failed to load users (${response.statusCode})');
       }
     } catch (e) {
+      print('🔴 Get users exception: $e');
       throw Exception('Error: $e');
     }
   }
 
-  // CREATE USER
+  // CREATE USER ✅ Sửa lại
   Future<Map<String, dynamic>> createUser(User user) async {
     try {
       final token = await _getToken();
+      final url = Uri.parse('$baseUrl/users');
+      print('🔵 Create user URL: $url');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/users'),
+        url,
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
         },
         body: jsonEncode(user.toJson()),
       );
 
-      if (response.statusCode == 201) {
+      print('🟡 Status: ${response.statusCode}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true, 'data': jsonDecode(response.body)};
       } else {
-        final error = jsonDecode(response.body);
-        return {'success': false, 'message': error['message']};
+        try {
+          final error = jsonDecode(response.body);
+          return {'success': false, 'message': error['message']};
+        } catch (e) {
+          return {'success': false, 'message': 'Server error'};
+        }
       }
     } catch (e) {
+      print('🔴 Create user exception: $e');
       return {'success': false, 'message': 'Error: $e'};
     }
   }
 
-  // UPDATE USER
+  // UPDATE USER ✅ Đã OK, thêm debug log
   Future<Map<String, dynamic>> updateUser(String id, User user) async {
     try {
       final token = await _getToken();
+      final url = Uri.parse('$baseUrl/users/$id');
+      print('🔵 Update user URL: $url');
+
       final response = await http.put(
-        Uri.parse('$baseUrl/users/$id'),
+        url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -111,138 +188,135 @@ class ApiService {
         body: jsonEncode(user.toJson()),
       );
 
+      print('🟡 Status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         return {'success': true, 'data': jsonDecode(response.body)};
       } else {
-        final error = jsonDecode(response.body);
-        return {'success': false, 'message': error['message']};
+        try {
+          final error = jsonDecode(response.body);
+          return {'success': false, 'message': error['message']};
+        } catch (e) {
+          return {'success': false, 'message': 'Server error'};
+        }
       }
     } catch (e) {
+      print('🔴 Update user exception: $e');
       return {'success': false, 'message': 'Error: $e'};
     }
   }
 
-  // DELETE USER
+  // DELETE USER ✅ Đã OK, thêm debug log
   Future<Map<String, dynamic>> deleteUser(String id) async {
     try {
       final token = await _getToken();
+      final url = Uri.parse('$baseUrl/users/$id');
+      print('🔵 Delete user URL: $url');
+
       final response = await http.delete(
-        Uri.parse('$baseUrl/users/$id'),
+        url,
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
 
-      if (response.statusCode == 200) {
+      print('🟡 Status: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
         return {'success': true};
       } else {
-        final error = jsonDecode(response.body);
-        return {'success': false, 'message': error['message']};
+        try {
+          final error = jsonDecode(response.body);
+          return {'success': false, 'message': error['message']};
+        } catch (e) {
+          return {'success': false, 'message': 'Server error'};
+        }
       }
     } catch (e) {
+      print('🔴 Delete user exception: $e');
       return {'success': false, 'message': 'Error: $e'};
     }
   }
 
-// UPLOAD IMAGE - ĐÃ SỬA LỖI
+  // UPLOAD IMAGE ✅ Sửa field name từ 'image' → 'file'
   Future<Map<String, dynamic>> uploadImage(String userId, XFile image) async {
     try {
       final token = await _getToken();
-      print('Uploading image for user: $userId');
+      final url = Uri.parse('$baseUrl/users/$userId/image');
+      print('🔵 Upload image URL: $url');
+      print('🔵 Image path: ${image.path}');
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/upload/$userId'),
+      var request = http.MultipartRequest('POST', url);
+      
+      // ✅ Thêm Authorization header
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+      });
+
+      // ✅ Sửa field name từ 'image' thành 'file'
+      request.files.add(
+        await http.MultipartFile.fromPath('file', image.path),
       );
-      
-      request.headers['Authorization'] = 'Bearer $token';
-      
-      // SỬA LỖI FILENAME - ĐƠN GIẢN
-      request.files.add(await http.MultipartFile.fromPath(
-        'image', 
-        image.path,
-        filename: 'user_$userId.jpg',
-      ));
 
-      print('Sending upload request...');
+      print('🟡 Sending upload request...');
       var response = await request.send();
       var respStr = await response.stream.bytesToString();
-      
-      print('Upload Response Status: ${response.statusCode}');
-      print('Upload Response Body: $respStr');
 
-      final result = json.decode(respStr);
-      
-      if (response.statusCode == 200 && result['success'] == true) {
-        return {
-          'success': true,
-          'url': result['url'],
-          'publicId': result['public_id']
-        };
+      print('🟡 Status: ${response.statusCode}');
+      print('🟡 Response: ${respStr.substring(0, respStr.length > 200 ? 200 : respStr.length)}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(respStr);
+        print('🟢 Upload success');
+        return {'success': true, 'data': data};
       } else {
-        return {
-          'success': false,
-          'message': result['message'] ?? 'Upload failed'
-        };
+        try {
+          final data = jsonDecode(respStr);
+          return {'success': false, 'message': data['message']};
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Upload failed (${response.statusCode})'
+          };
+        }
       }
-    } on FormatException catch (e) {
-      print('JSON Parse Error in upload: $e');
-      return {
-        'success': false, 
-        'message': 'Invalid response format from server'
-      };
     } catch (e) {
-      print('Upload Error: $e');
-      return {
-        'success': false, 
-        'message': 'Upload failed: $e'
-      };
+      print('🔴 Upload image exception: $e');
+      return {'success': false, 'message': 'Error: $e'};
     }
   }
 
-  // REMOVE IMAGE
-  Future<Map<String, dynamic>> removeImage(String userId, String publicId) async {
+  // PATCH USER (cập nhật một phần) ✅ Thêm method này
+  Future<Map<String, dynamic>> patchUser(String id, Map<String, dynamic> data) async {
     try {
       final token = await _getToken();
-      print('Removing image for user: $userId, publicId: $publicId');
+      final url = Uri.parse('$baseUrl/users/$id');
+      print('🔵 Patch user URL: $url');
 
-      final response = await http.delete(
-        Uri.parse('$baseUrl/remove/$userId'),
+      final response = await http.patch(
+        url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        body: jsonEncode(data),
       );
 
-      print('Remove Response Status: ${response.statusCode}');
-      print('Remove Response Body: ${response.body}');
+      print('🟡 Status: ${response.statusCode}');
 
-      final result = json.decode(response.body);
-      
-      if (response.statusCode == 200 && result['success'] == true) {
-        return {
-          'success': true,
-          'message': result['message']
-        };
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': jsonDecode(response.body)};
       } else {
-        return {
-          'success': false,
-          'message': result['message'] ?? 'Remove failed'
-        };
+        try {
+          final error = jsonDecode(response.body);
+          return {'success': false, 'message': error['message']};
+        } catch (e) {
+          return {'success': false, 'message': 'Server error'};
+        }
       }
-    } on FormatException catch (e) {
-      print('JSON Parse Error in remove: $e');
-      return {
-        'success': false,
-        'message': 'Invalid response format'
-      };
     } catch (e) {
-      print('Remove Error: $e');
-      return {
-        'success': false,
-        'message': 'Remove failed: $e'
-      };
+      print('🔴 Patch user exception: $e');
+      return {'success': false, 'message': 'Error: $e'};
     }
   }
 }
