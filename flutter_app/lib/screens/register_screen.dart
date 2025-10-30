@@ -137,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ✅ Header
+                  // Header
                   Container(
                     width: 80,
                     height: 80,
@@ -153,7 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ✅ Title
+                  // Title
                   Text(
                     'Tạo Tài Khoản',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -171,7 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ✅ Form Card
+                  // Form Card
                   Card(
                     elevation: 8,
                     shape: RoundedRectangleBorder(
@@ -435,7 +435,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // ✅ Login Link
+                  // Login Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

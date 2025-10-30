@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ✅ Header với icon
+                  // Header với icon
                   Container(
                     width: 80,
                     height: 80,
@@ -106,7 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ✅ Title
                   Text(
                     'Quản lý Người Dùng',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -124,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 48),
 
-                  // ✅ Form Card
+                  // Form Card
                   Card(
                     elevation: 8,
                     shape: RoundedRectangleBorder(
@@ -269,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ✅ Register Link
+                  // Register Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

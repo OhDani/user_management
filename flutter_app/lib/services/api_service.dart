@@ -25,7 +25,7 @@ class ApiService {
     await prefs.remove('token');
   }
 
-  // LOGIN ✅ Sửa lại
+  // LOGIN 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final url = Uri.parse('$baseUrl/auth/login');
@@ -35,7 +35,7 @@ class ApiService {
       final response = await http.post(
         url,
         headers: {
-          'Content-Type': 'application/json', // ✅ Thêm header này
+          'Content-Type': 'application/json', 
         },
         body: jsonEncode({'email': email, 'password': password}),
       );
@@ -66,7 +66,7 @@ class ApiService {
     }
   }
 
-  // REGISTER ✅ Thêm method này
+  // REGISTER 
   Future<Map<String, dynamic>> register(
       String username, String email, String password) async {
     try {
@@ -108,7 +108,7 @@ class ApiService {
     }
   }
 
-  // GET ALL USERS ✅ Thêm debug log
+  // GET ALL USERS 
   Future<List<User>> getUsers() async {
     try {
       final token = await _getToken();
@@ -138,7 +138,7 @@ class ApiService {
     }
   }
 
-  // CREATE USER ✅ Sửa lại
+  // CREATE USER 
   Future<Map<String, dynamic>> createUser(User user) async {
     try {
       final token = await _getToken();
@@ -172,7 +172,7 @@ class ApiService {
     }
   }
 
-  // UPDATE USER ✅ Đã OK, thêm debug log
+  // UPDATE USER 
   Future<Map<String, dynamic>> updateUser(String id, User user) async {
     try {
       final token = await _getToken();
@@ -206,7 +206,7 @@ class ApiService {
     }
   }
 
-  // DELETE USER ✅ Đã OK, thêm debug log
+  // DELETE USER
   Future<Map<String, dynamic>> deleteUser(String id) async {
     try {
       final token = await _getToken();
@@ -238,7 +238,7 @@ class ApiService {
     }
   }
 
-  // UPLOAD IMAGE ✅ Sửa field name từ 'image' → 'file'
+  // UPLOAD IMAGE 
   Future<Map<String, dynamic>> uploadImage(String userId, XFile image) async {
     try {
       final token = await _getToken();
@@ -248,12 +248,12 @@ class ApiService {
 
       var request = http.MultipartRequest('POST', url);
       
-      // ✅ Thêm Authorization header
+      // Thêm Authorization header
       request.headers.addAll({
         'Authorization': 'Bearer $token',
       });
 
-      // ✅ Sửa field name từ 'image' thành 'file'
+      // Sửa field name từ 'image' thành 'file'
       request.files.add(
         await http.MultipartFile.fromPath('file', image.path),
       );
@@ -286,7 +286,7 @@ class ApiService {
     }
   }
 
-  // PATCH USER (cập nhật một phần) ✅ Thêm method này
+  // PATCH USER (cập nhật một phần)
   Future<Map<String, dynamic>> patchUser(String id, Map<String, dynamic> data) async {
     try {
       final token = await _getToken();

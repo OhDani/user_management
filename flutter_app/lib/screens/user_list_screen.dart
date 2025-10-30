@@ -46,10 +46,7 @@ class _UserListScreenState extends State<UserListScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -59,33 +56,168 @@ class _UserListScreenState extends State<UserListScreen> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredUsers = _users
-          .where((user) =>
-              user.username.toLowerCase().contains(query) ||
-              user.email.toLowerCase().contains(query))
+          .where(
+            (user) =>
+                user.username.toLowerCase().contains(query) ||
+                user.email.toLowerCase().contains(query),
+          )
           .toList();
     });
   }
 
   Future<void> _deleteUser(String id, int index) async {
+    print('🔵 Deleting user: ID=$id, Index=$index');
+    print('🔵 Users count before: ${_users.length}');
+    print('🔵 Filtered users count: ${_filteredUsers.length}');
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Xóa người dùng'),
-        content: const Text('Bạn có chắc muốn xóa người dùng này?'),
+        content: const Text('Bạn có chắc muốn xóa người dùng này không?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            child: Text('Hủy', style: TextStyle(color: Colors.grey[600])),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text(
+              'Xóa',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
 
-    if (confirm == true) {
+    if (confirm != true) return;
+
+    // Tìm user để xóa trước khi thực hiện
+    final userToDelete = _users.firstWhere(
+      (user) => user.id == id,
+      orElse: () => throw Exception('User not found'),
+    );
+
+    if (!mounted) return;
+
+    // Show loading với ScaffoldMessenger reference
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation(Colors.white),
+              ),
+            ),
+            SizedBox(width: 16),
+            Text('Đang xóa người dùng...'),
+          ],
+        ),
+        duration: Duration(seconds: 30),
+      ),
+    );
+
+    try {
+      final result = await _apiService.deleteUser(id);
+
+      if (!mounted) return;
+
+      // Hide loading snackbar
+      messenger.hideCurrentSnackBar();
+
+      if (result['success']) {
+        // ✅ An toàn: Tìm và xóa user bằng ID thay vì index
+        setState(() {
+          final removedCount = _users.length;
+          _users.removeWhere((user) => user.id == id);
+          print('🟢 Removed ${removedCount - _users.length} users');
+          print('🟢 Users count after: ${_users.length}');
+          _filterUsers(); // Cập nhật filtered list
+        });
+
+        // Show success message
+        messenger.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Đã xóa "${userToDelete.username}" thành công'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      } else {
+        // Show error message
+        messenger.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(result['message'] ?? 'Xóa người dùng thất bại'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Lỗi: ${e.toString()}')),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      print('🔴 Delete error: $e');
+    }
+  }
+
+  Future<void> _uploadImage(User user, int index) async {
+    final picker = ImagePicker();
+
+    // Giảm kích thước ảnh trước khi upload
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800, // Giới hạn width
+      maxHeight: 800, // Giới hạn height
+      imageQuality: 80, // Giảm quality xuống 80%
+    );
+
+    if (pickedFile != null) {
+      // Show loading
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -94,131 +226,73 @@ class _UserListScreenState extends State<UserListScreen> {
                 SizedBox(
                   height: 16,
                   width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                  ),
                 ),
                 SizedBox(width: 16),
-                Text('Đang xóa...'),
+                Text('Đang upload ảnh...'),
               ],
             ),
-            duration: Duration(seconds: 30),
+            duration: Duration(minutes: 1),
           ),
         );
       }
 
-      final result = await _apiService.deleteUser(id);
-      
-      if (mounted) {
-        Navigator.pop(context);
-        if (result['success']) {
-          setState(() {
-            _users.removeAt(index);
-            _filterUsers();
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Xóa người dùng thành công'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Xóa thất bại'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
+      try {
+        // Chạy upload trong isolate để không block UI
+        final result = await _apiService.uploadImage(user.id!, pickedFile);
 
-Future<void> _uploadImage(User user, int index) async {
-  final picker = ImagePicker();
-  
-  // ✅ Giảm kích thước ảnh trước khi upload
-  final pickedFile = await picker.pickImage(
-    source: ImageSource.gallery,
-    maxWidth: 800,  // Giới hạn width
-    maxHeight: 800, // Giới hạn height
-    imageQuality: 80, // Giảm quality xuống 80%
-  );
-  
-  if (pickedFile != null) {
-    // Show loading
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(Colors.white),
-                ),
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+          if (result['success']) {
+            // Update UI một cách an toàn
+            await Future.delayed(
+              const Duration(milliseconds: 100),
+            ); // Cho UI breathe
+
+            setState(() {
+              try {
+                _users[index] = User.fromJson(result['data']);
+                _filterUsers();
+              } catch (e) {
+                print('Parse error: $e');
+                // Fallback: just reload
+                _loadUsers();
+              }
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Upload ảnh thành công'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
               ),
-              SizedBox(width: 16),
-              Text('Đang upload ảnh...'),
-            ],
-          ),
-          duration: Duration(minutes: 1),
-        ),
-      );
-    }
-
-    try {
-      // ✅ Chạy upload trong isolate để không block UI
-      final result = await _apiService.uploadImage(user.id!, pickedFile);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        
-        if (result['success']) {
-          // ✅ Update UI một cách an toàn
-          await Future.delayed(const Duration(milliseconds: 100)); // Cho UI breathe
-          
-          setState(() {
-            try {
-              _users[index] = User.fromJson(result['data']);
-              _filterUsers();
-            } catch (e) {
-              print('Parse error: $e');
-              // Fallback: just reload
-              _loadUsers();
-            }
-          });
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Upload ảnh thành công'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        } else {
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message'] ?? 'Upload thất bại'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? 'Upload thất bại'),
+              content: Text('Lỗi: ${e.toString()}'),
               backgroundColor: Colors.red,
             ),
           );
         }
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
-}
 
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
@@ -318,7 +392,10 @@ Future<void> _uploadImage(User user, int index) async {
             ),
             Text(
               '${_users.length} người dùng',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),
@@ -402,16 +479,16 @@ Future<void> _uploadImage(User user, int index) async {
                             itemCount: _filteredUsers.length,
                             itemBuilder: (context, index) {
                               final user = _filteredUsers[index];
-                              final originalIndex = _users
-                                  .indexWhere((u) => u.id == user.id);
+                              final originalIndex = _users.indexWhere(
+                                (u) => u.id == user.id,
+                              );
 
                               return _UserCard(
                                 user: user,
-                                onMoreTap: () =>
-                                    _showUserActionsBottomSheet(
-                                      user,
-                                      originalIndex,
-                                    ),
+                                onMoreTap: () => _showUserActionsBottomSheet(
+                                  user,
+                                  originalIndex,
+                                ),
                               );
                             },
                           ),
@@ -423,9 +500,7 @@ Future<void> _uploadImage(User user, int index) async {
         onPressed: () async {
           await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const AddUserScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const AddUserScreen()),
           );
           _loadUsers();
         },
@@ -440,10 +515,7 @@ class _UserCard extends StatelessWidget {
   final User user;
   final VoidCallback onMoreTap;
 
-  const _UserCard({
-    required this.user,
-    required this.onMoreTap,
-  });
+  const _UserCard({required this.user, required this.onMoreTap});
 
   @override
   Widget build(BuildContext context) {
@@ -495,17 +567,16 @@ class _UserCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     user.email,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   // Status Badge - default to "Hoạt động"
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.green[100],
                       borderRadius: BorderRadius.circular(4),

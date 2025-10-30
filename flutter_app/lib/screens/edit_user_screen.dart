@@ -30,7 +30,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
     super.initState();
     _usernameController = TextEditingController(text: widget.user.username);
     _emailController = TextEditingController(text: widget.user.email);
-    _currentImageUrl = widget.user.image; // ✅ Lưu URL gốc
+    _currentImageUrl = widget.user.image; // Lưu URL gốc
   }
 
   Future<void> _pickImage() async {
@@ -43,7 +43,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
 
     if (pickedFile != null) {
       setState(() {
-        _imageFile = File(pickedFile.path); // ✅ Lưu File
+        _imageFile = File(pickedFile.path); // Lưu File
       });
     }
   }
@@ -54,7 +54,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // ✅ Cập nhật thông tin user
+      // Cập nhật thông tin user
       final userUpdate = User(
         username: _usernameController.text,
         email: _emailController.text,
@@ -78,7 +78,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
         return;
       }
 
-      // ✅ Nếu có ảnh mới, upload riêng
+      // Nếu có ảnh mới, upload riêng
       if (_imageFile != null) {
         final uploadResult = await _apiService.uploadImage(
           widget.user.id!,
@@ -137,7 +137,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // ✅ Avatar với xử lý khác nhau
+              // Avatar với xử lý khác nhau
               GestureDetector(
                 onTap: _pickImage,
                 child: Stack(
@@ -145,10 +145,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
                     CircleAvatar(
                       radius: 60,
                       backgroundColor: Colors.grey[200],
-                      // ✅ Hiển thị ảnh từ gallery (File)
+                      // Hiển thị ảnh từ gallery (File)
                       backgroundImage: _imageFile != null
                           ? FileImage(_imageFile!)
-                          // ✅ Hoặc hiển thị URL từ Cloudinary
+                          // Hoặc hiển thị URL từ Cloudinary
                           : (_currentImageUrl != null
                               ? NetworkImage(_currentImageUrl!)
                               : null),
@@ -160,7 +160,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
                             )
                           : null,
                     ),
-                    // ✅ Badge thay đổi ảnh
+                    // Badge thay đổi ảnh
                     Positioned(
                       bottom: 0,
                       right: 0,
