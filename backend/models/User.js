@@ -22,7 +22,8 @@ const userSchema = new mongoose.Schema({
   image: {
     type: String,
     default: null
-  }
+  },
+  image_public_id: { type: String, default: null }  
 }, {
   timestamps: true
 });

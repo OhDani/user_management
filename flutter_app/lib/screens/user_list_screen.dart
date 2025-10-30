@@ -128,7 +128,7 @@ class _UserListScreenState extends State<UserListScreen> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Edit
+                                // Edit user
                                 IconButton(
                                   icon: const Icon(
                                     Icons.edit,
@@ -145,7 +145,7 @@ class _UserListScreenState extends State<UserListScreen> {
                                     _loadUsers();
                                   },
                                 ),
-
+                                 
                                 // Upload ảnh
                                 IconButton(
                                   icon: const Icon(
@@ -160,7 +160,27 @@ class _UserListScreenState extends State<UserListScreen> {
                                     if (pickedFile != null) {
                                       final result = await _apiService
                                           .uploadImage(user.id!, pickedFile);
-                                      if (result['success']) _loadUsers();
+
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
+                                      ); // dùng 1 lần
+                                      if (result['success']) {
+                                        setState(() {
+                                          user.image = result['url'];
+                                          user.publicId = result['publicId'];
+                                        });
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Upload thành công'),
+                                          ),
+                                        );
+                                      } else {
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Upload thất bại'),
+                                          ),
+                                        );
+                                      }
                                     }
                                   },
                                 ),
@@ -172,9 +192,42 @@ class _UserListScreenState extends State<UserListScreen> {
                                     color: Colors.grey,
                                   ),
                                   onPressed: () async {
+                                    if (user.publicId == null ||
+                                        user.publicId!.isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Không tìm thấy publicId ảnh',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
                                     final result = await _apiService
-                                        .removeImage(user.id!);
-                                    if (result['success']) _loadUsers();
+                                        .removeImage(user.id!, user.publicId!);
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
+                                    if (result['success'] == true) {
+                                      setState(() {
+                                        user.image = null;
+                                        user.publicId = null;
+                                      });
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Xóa ảnh thành công'),
+                                        ),
+                                      );
+                                    } else {
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Xóa ảnh thất bại'),
+                                        ),
+                                      );
+                                    }
                                   },
                                 ),
 

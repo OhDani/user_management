@@ -3,7 +3,8 @@ class User {
   final String username;
   final String email;
   final String? password; // Chỉ dùng khi tạo/update
-  final String? image;
+  String? image;
+  String? publicId;
 
   User({
     this.id,
@@ -11,6 +12,7 @@ class User {
     required this.email,
     this.password,
     this.image,
+    this.publicId,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -19,6 +21,7 @@ class User {
       username: json['username'],
       email: json['email'],
       image: json['image'],
+      publicId: json['publicId'],
     );
   }
 
@@ -33,6 +36,9 @@ class User {
     if (image != null) {
       data['image'] = image;
     }
-    return data;
+    if (publicId != null) {
+      data['publicId'] = publicId;
+    }
+    return data;  
   }
 }

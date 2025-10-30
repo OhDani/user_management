@@ -126,32 +126,39 @@ router.delete('/users/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// 7. Upload hoặc update ảnh user
+// Upload/update ảnh user
 router.post('/upload/:id', parser.single('image'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Xóa ảnh cũ nếu có
-    if (user.image_public_id) {
-      await cloudinary.uploader.destroy(user.image_public_id);
-    }
+    if (!req.file) return res.status(400).json({ message: 'Chưa chọn file' });
 
-    // Lưu link và public_id
-    user.image = req.file.path;
-    user.image_public_id = req.file.filename;
+    // URL Cloudinary
+    const imageUrl = req.file.path;       // Multer+Cloudinary trả về path
+    const publicId = req.file.filename;   // Hoặc req.file.public_id nếu dùng cloudinary-storage
+
+    // Lưu vào DB
+    user.image = imageUrl;
+    user.image_public_id = publicId;
     await user.save();
 
-    res.json({ message: 'Image uploaded successfully', user });
+    res.status(200).json({
+      message: 'Upload thành công',
+      url: imageUrl,
+      public_id: publicId
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Upload thất bại', error: err.message });
   }
 });
 
-// 8. Remove ảnh
+// Remove ảnh
 router.delete('/remove/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (!user.image_public_id) {
       return res.status(400).json({ message: 'No image to remove' });
@@ -166,7 +173,7 @@ router.delete('/remove/:id', async (req, res) => {
     res.json({ message: 'Image removed successfully', user });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 

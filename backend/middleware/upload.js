@@ -7,9 +7,13 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'user_images',
     allowed_formats: ['jpg', 'png', 'jpeg'],
+    transformation: [{ width: 500, height: 500, crop: 'limit' }],
+    // Đảm bảo trả về URL đầy đủ
+    use_filename: true,
+    unique_filename: false,
   },
 });
 
-const upload = multer({ storage });  // <-- đây phải là instance multer
+const parser = multer({ storage });
 
-module.exports = upload; 
+module.exports = parser;

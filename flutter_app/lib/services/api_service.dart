@@ -145,22 +145,104 @@ class ApiService {
     }
   }
 
-  // Upload ảnh
+// UPLOAD IMAGE - ĐÃ SỬA LỖI
   Future<Map<String, dynamic>> uploadImage(String userId, XFile image) async {
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$baseUrl/upload/$userId'),
-    );
-    request.files.add(await http.MultipartFile.fromPath('image', image.path));
+    try {
+      final token = await _getToken();
+      print('Uploading image for user: $userId');
 
-    var response = await request.send();
-    var respStr = await response.stream.bytesToString();
-    return json.decode(respStr);
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/upload/$userId'),
+      );
+      
+      request.headers['Authorization'] = 'Bearer $token';
+      
+      // SỬA LỖI FILENAME - ĐƠN GIẢN
+      request.files.add(await http.MultipartFile.fromPath(
+        'image', 
+        image.path,
+        filename: 'user_$userId.jpg',
+      ));
+
+      print('Sending upload request...');
+      var response = await request.send();
+      var respStr = await response.stream.bytesToString();
+      
+      print('Upload Response Status: ${response.statusCode}');
+      print('Upload Response Body: $respStr');
+
+      final result = json.decode(respStr);
+      
+      if (response.statusCode == 200 && result['success'] == true) {
+        return {
+          'success': true,
+          'url': result['url'],
+          'publicId': result['public_id']
+        };
+      } else {
+        return {
+          'success': false,
+          'message': result['message'] ?? 'Upload failed'
+        };
+      }
+    } on FormatException catch (e) {
+      print('JSON Parse Error in upload: $e');
+      return {
+        'success': false, 
+        'message': 'Invalid response format from server'
+      };
+    } catch (e) {
+      print('Upload Error: $e');
+      return {
+        'success': false, 
+        'message': 'Upload failed: $e'
+      };
+    }
   }
 
-  // Remove ảnh
-  Future<Map<String, dynamic>> removeImage(String userId) async {
-    var response = await http.delete(Uri.parse('$baseUrl/remove/$userId'));
-    return json.decode(response.body);
+  // REMOVE IMAGE
+  Future<Map<String, dynamic>> removeImage(String userId, String publicId) async {
+    try {
+      final token = await _getToken();
+      print('Removing image for user: $userId, publicId: $publicId');
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/remove/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Remove Response Status: ${response.statusCode}');
+      print('Remove Response Body: ${response.body}');
+
+      final result = json.decode(response.body);
+      
+      if (response.statusCode == 200 && result['success'] == true) {
+        return {
+          'success': true,
+          'message': result['message']
+        };
+      } else {
+        return {
+          'success': false,
+          'message': result['message'] ?? 'Remove failed'
+        };
+      }
+    } on FormatException catch (e) {
+      print('JSON Parse Error in remove: $e');
+      return {
+        'success': false,
+        'message': 'Invalid response format'
+      };
+    } catch (e) {
+      print('Remove Error: $e');
+      return {
+        'success': false,
+        'message': 'Remove failed: $e'
+      };
+    }
   }
 }
