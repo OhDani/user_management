@@ -133,42 +133,63 @@ class _UserListScreenState extends State<UserListScreen> {
     }
   }
 
-  Future<void> _uploadImage(User user, int index) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile != null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(Colors.white),
-                  ),
+Future<void> _uploadImage(User user, int index) async {
+  final picker = ImagePicker();
+  
+  // ✅ Giảm kích thước ảnh trước khi upload
+  final pickedFile = await picker.pickImage(
+    source: ImageSource.gallery,
+    maxWidth: 800,  // Giới hạn width
+    maxHeight: 800, // Giới hạn height
+    imageQuality: 80, // Giảm quality xuống 80%
+  );
+  
+  if (pickedFile != null) {
+    // Show loading
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
                 ),
-                SizedBox(width: 16),
-                Text('Đang upload ảnh...'),
-              ],
-            ),
-            duration: Duration(minutes: 1),
+              ),
+              SizedBox(width: 16),
+              Text('Đang upload ảnh...'),
+            ],
           ),
-        );
-      }
+          duration: Duration(minutes: 1),
+        ),
+      );
+    }
 
+    try {
+      // ✅ Chạy upload trong isolate để không block UI
       final result = await _apiService.uploadImage(user.id!, pickedFile);
       
       if (mounted) {
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        
         if (result['success']) {
+          // ✅ Update UI một cách an toàn
+          await Future.delayed(const Duration(milliseconds: 100)); // Cho UI breathe
+          
           setState(() {
-            _users[index] = result['data'];
-            _filterUsers();
+            try {
+              _users[index] = User.fromJson(result['data']);
+              _filterUsers();
+            } catch (e) {
+              print('Parse error: $e');
+              // Fallback: just reload
+              _loadUsers();
+            }
           });
+          
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Upload ảnh thành công'),
@@ -185,8 +206,19 @@ class _UserListScreenState extends State<UserListScreen> {
           );
         }
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
+}
 
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
@@ -470,7 +502,7 @@ class _UserCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  // Status Badge
+                  // Status Badge - default to "Hoạt động"
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

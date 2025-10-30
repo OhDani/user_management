@@ -284,12 +284,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Vui lòng nhập mật khẩu';
                                 }
-                                if (value.length < 8) {
-                                  return 'Mật khẩu phải ít nhất 8 ký tự';
-                                }
-                                if (!_isPasswordStrong(value)) {
-                                  return 'Mật khẩu phải chứa chữ hoa, chữ thường và số';
-                                }
+
                                 return null;
                               },
                             ),

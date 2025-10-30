@@ -148,30 +148,19 @@ exports.uploadImage = async (req, res, next) => {
     const { id } = req.params;
     if (!isValidObjectId(id)) return res.status(400).json({ message: 'Invalid user id' });
 
+    // Kiểm tra file từ multer-storage-cloudinary
     if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-
-    // Upload bằng stream từ buffer
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: 'users' },
-        (error, uploaded) => {
-          if (error) return reject(error);
-          resolve(uploaded);
-        }
-      );
-      stream.end(req.file.buffer);
-    });
 
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    user.image = result.secure_url;
+    // CloudinaryStorage đã upload tự động, chỉ cần lấy URL
+    user.image = req.file.path; // CloudinaryStorage trả về đường dẫn qua req.file.path
     await user.save();
 
-    const safe = await User.findById(id);
-    res.status(200).json(safe);
+    const updatedUser = await User.findById(id);
+    res.status(200).json(updatedUser);
   } catch (err) {
-    // Gộp lỗi Multer/Cloudinary
     err.status = err.name === 'MulterError' ? 400 : err.status;
     next(err);
   }
